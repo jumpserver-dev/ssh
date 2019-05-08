@@ -125,38 +125,54 @@ func (srv *Server) config(ctx Context) *gossh.ServerConfig {
 	for _, signer := range srv.HostSigners {
 		config.AddHostKey(signer)
 	}
-	if srv.PasswordHandler == nil && srv.PublicKeyHandler == nil {
-		config.NoClientAuth = true
-	}
+	//if srv.PasswordHandler == nil && srv.PublicKeyHandler == nil {
+	//	config.NoClientAuth = true
+	//}
 	if srv.Version != "" {
 		config.ServerVersion = "SSH-2.0-" + srv.Version
 	}
 	if srv.PasswordHandler != nil {
 		config.PasswordCallback = func(conn gossh.ConnMetadata, password []byte) (*gossh.Permissions, error) {
 			applyConnMetadata(ctx, conn)
-			if ok := srv.PasswordHandler(ctx, string(password)); !ok {
+			res := srv.PasswordHandler(ctx, string(password))
+			switch res {
+			case AuthSuccessful:
+				return ctx.Permissions().Permissions, nil
+			case AuthPartiallySuccessful:
+				return ctx.Permissions().Permissions, gossh.ErrPartialSuccess
+			default:
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
-			return ctx.Permissions().Permissions, nil
 		}
 	}
 	if srv.PublicKeyHandler != nil {
 		config.PublicKeyCallback = func(conn gossh.ConnMetadata, key gossh.PublicKey) (*gossh.Permissions, error) {
 			applyConnMetadata(ctx, conn)
-			if ok := srv.PublicKeyHandler(ctx, key); !ok {
+			res := srv.PublicKeyHandler(ctx, key)
+			switch res {
+			case AuthSuccessful:
+				ctx.SetValue(ContextKeyPublicKey, key)
+				return ctx.Permissions().Permissions, nil
+			case AuthPartiallySuccessful:
+				ctx.SetValue(ContextKeyPublicKey, key)
+				return ctx.Permissions().Permissions, gossh.ErrPartialSuccess
+			default:
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
-			ctx.SetValue(ContextKeyPublicKey, key)
-			return ctx.Permissions().Permissions, nil
 		}
 	}
 	if srv.KeyboardInteractiveHandler != nil {
 		config.KeyboardInteractiveCallback = func(conn gossh.ConnMetadata, challenger gossh.KeyboardInteractiveChallenge) (*gossh.Permissions, error) {
 			applyConnMetadata(ctx, conn)
-			if ok := srv.KeyboardInteractiveHandler(ctx, challenger); !ok {
+			res := srv.KeyboardInteractiveHandler(ctx, challenger)
+			switch res {
+			case AuthSuccessful:
+				return ctx.Permissions().Permissions, nil
+			case AuthPartiallySuccessful:
+				return ctx.Permissions().Permissions, gossh.ErrPartialSuccess
+			default:
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
-			return ctx.Permissions().Permissions, nil
 		}
 	}
 	if srv.NextAuthMethodsHandler != nil {

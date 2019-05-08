@@ -26,6 +26,16 @@ const (
 	SIGUSR2 Signal = "USR2"
 )
 
+// AuthResult, use some code except bool, to mark
+// auth state
+type AuthResult int
+
+const (
+	AuthFailed AuthResult = iota
+	AuthSuccessful
+	AuthPartiallySuccessful
+)
+
 // DefaultHandler is the default Handler used by Serve.
 var DefaultHandler Handler
 
