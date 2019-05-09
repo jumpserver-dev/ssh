@@ -41,6 +41,7 @@ type Server struct {
 	KeyboardInteractiveHandler    KeyboardInteractiveHandler    // keyboard-interactive authentication handler
 	PasswordHandler               PasswordHandler               // password authentication handler
 	PublicKeyHandler              PublicKeyHandler              // public key authentication handler
+	NextAuthMethodsHandler        NextAuthMethodsHandler        // next auth methods handler for 2 step auth
 	PtyCallback                   PtyCallback                   // callback for allowing PTY sessions, allows all if nil
 	ConnCallback                  ConnCallback                  // optional callback for wrapping net.Conn before handling
 	LocalPortForwardingCallback   LocalPortForwardingCallback   // callback for allowing local port forwarding, denies all if nil
@@ -129,35 +130,60 @@ func (srv *Server) config(ctx Context) *gossh.ServerConfig {
 	if srv.PasswordHandler == nil && srv.PublicKeyHandler == nil && srv.KeyboardInteractiveHandler == nil {
 		config.NoClientAuth = true
 	}
+	//if srv.PasswordHandler == nil && srv.PublicKeyHandler == nil {
+	//	config.NoClientAuth = true
+	//}
 	if srv.Version != "" {
 		config.ServerVersion = "SSH-2.0-" + srv.Version
 	}
 	if srv.PasswordHandler != nil {
 		config.PasswordCallback = func(conn gossh.ConnMetadata, password []byte) (*gossh.Permissions, error) {
 			applyConnMetadata(ctx, conn)
-			if ok := srv.PasswordHandler(ctx, string(password)); !ok {
+			res := srv.PasswordHandler(ctx, string(password))
+			switch res {
+			case AuthSuccessful:
+				return ctx.Permissions().Permissions, nil
+			case AuthPartiallySuccessful:
+				return ctx.Permissions().Permissions, gossh.ErrPartialSuccess
+			default:
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
-			return ctx.Permissions().Permissions, nil
 		}
 	}
 	if srv.PublicKeyHandler != nil {
 		config.PublicKeyCallback = func(conn gossh.ConnMetadata, key gossh.PublicKey) (*gossh.Permissions, error) {
 			applyConnMetadata(ctx, conn)
-			if ok := srv.PublicKeyHandler(ctx, key); !ok {
+			res := srv.PublicKeyHandler(ctx, key)
+			switch res {
+			case AuthSuccessful:
+				ctx.SetValue(ContextKeyPublicKey, key)
+				return ctx.Permissions().Permissions, nil
+			case AuthPartiallySuccessful:
+				ctx.SetValue(ContextKeyPublicKey, key)
+				return ctx.Permissions().Permissions, gossh.ErrPartialSuccess
+			default:
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
-			ctx.SetValue(ContextKeyPublicKey, key)
-			return ctx.Permissions().Permissions, nil
 		}
 	}
 	if srv.KeyboardInteractiveHandler != nil {
 		config.KeyboardInteractiveCallback = func(conn gossh.ConnMetadata, challenger gossh.KeyboardInteractiveChallenge) (*gossh.Permissions, error) {
 			applyConnMetadata(ctx, conn)
-			if ok := srv.KeyboardInteractiveHandler(ctx, challenger); !ok {
+			res := srv.KeyboardInteractiveHandler(ctx, challenger)
+			switch res {
+			case AuthSuccessful:
+				return ctx.Permissions().Permissions, nil
+			case AuthPartiallySuccessful:
+				return ctx.Permissions().Permissions, gossh.ErrPartialSuccess
+			default:
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
-			return ctx.Permissions().Permissions, nil
+		}
+	}
+	if srv.NextAuthMethodsHandler != nil {
+		config.NextAuthMethodsCallback = func(conn gossh.ConnMetadata) []string {
+			applyConnMetadata(ctx, conn)
+			return srv.NextAuthMethodsHandler(ctx)
 		}
 	}
 	return config
