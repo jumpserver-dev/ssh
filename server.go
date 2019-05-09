@@ -41,6 +41,7 @@ type Server struct {
 	KeyboardInteractiveHandler    KeyboardInteractiveHandler    // keyboard-interactive authentication handler
 	PasswordHandler               PasswordHandler               // password authentication handler
 	PublicKeyHandler              PublicKeyHandler              // public key authentication handler
+	NextAuthMethodsHandler        NextAuthMethodsHandler        // next auth methods handler for 2 step auth
 	PtyCallback                   PtyCallback                   // callback for allowing PTY sessions, allows all if nil
 	ConnCallback                  ConnCallback                  // optional callback for wrapping net.Conn before handling
 	LocalPortForwardingCallback   LocalPortForwardingCallback   // callback for allowing local port forwarding, denies all if nil
@@ -156,6 +157,12 @@ func (srv *Server) config(ctx Context) *gossh.ServerConfig {
 				return ctx.Permissions().Permissions, fmt.Errorf("permission denied")
 			}
 			return ctx.Permissions().Permissions, nil
+		}
+	}
+	if srv.NextAuthMethodsHandler != nil {
+		config.NextAuthMethodsCallback = func(conn gossh.ConnMetadata) []string {
+			applyConnMetadata(ctx, conn)
+			return srv.NextAuthMethodsHandler(ctx)
 		}
 	}
 	return config
