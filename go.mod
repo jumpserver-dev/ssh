@@ -7,4 +7,4 @@ require (
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899
 )
 
-replace  golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899 => github.com/LeeEirc/crypto v0.0.0-20201111063343-abd7a31f9aa8
+replace golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899 => github.com/LeeEirc/crypto v0.0.0-20201111063343-abd7a31f9aa8
