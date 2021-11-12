@@ -10,4 +10,4 @@ require (
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 )
 
-replace golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e => github.com/LeeEirc/crypto v0.0.0-20201111063343-abd7a31f9aa8
+replace golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e => github.com/LeeEirc/crypto v0.0.0-20211112090926-652515632c44
