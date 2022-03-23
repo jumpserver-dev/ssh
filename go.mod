@@ -11,4 +11,4 @@ require (
 	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
 )
 
-replace golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d => github.com/LeeEirc/crypto v0.0.0-20211224091614-e3d02217ccc3
+replace golang.org/x/crypto v0.0.0-20220826181053-bd7e27e6170d =>  github.com/LeeEirc/crypto v0.0.0-20220323080723-e1953f456d73
