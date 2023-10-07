@@ -49,6 +49,8 @@ type Server struct {
 	ServerConfigCallback          ServerConfigCallback          // callback for configuring detailed SSH options
 	SessionRequestCallback        SessionRequestCallback        // callback for allowing or denying SSH sessions
 
+	AuthLogCallback AuthLogCallback // callback to report authentication attempts
+
 	ConnectionFailedCallback ConnectionFailedCallback // callback to report connection failures
 
 	IdleTimeout time.Duration // connection timeout when no activity, none if empty
@@ -184,6 +186,12 @@ func (srv *Server) config(ctx Context) *gossh.ServerConfig {
 		config.NextAuthMethodsCallback = func(conn gossh.ConnMetadata) []string {
 			applyConnMetadata(ctx, conn)
 			return srv.NextAuthMethodsHandler(ctx)
+		}
+	}
+	if srv.AuthLogCallback != nil {
+		config.AuthLogCallback = func(conn gossh.ConnMetadata, method string, err error) {
+			applyConnMetadata(ctx, conn)
+			srv.AuthLogCallback(ctx, method, err)
 		}
 	}
 	return config

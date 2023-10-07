@@ -54,8 +54,11 @@ type PasswordHandler func(ctx Context, password string) AuthResult
 // KeyboardInteractiveHandler is a callback for performing keyboard-interactive authentication.
 type KeyboardInteractiveHandler func(ctx Context, challenger gossh.KeyboardInteractiveChallenge) AuthResult
 
-// NextAuthMethodsHandler is a callback for performing 2 step auth
+// NextAuthMethodsHandler is a callback for performing 2 steps auth
 type NextAuthMethodsHandler func(ctx Context) []string
+
+// AuthLogCallback is called to log all authentication attempts.
+type AuthLogCallback func(ctx Context, method string, err error)
 
 // PtyCallback is a hook for allowing PTY sessions.
 type PtyCallback func(ctx Context, pty Pty) bool
