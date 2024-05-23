@@ -387,7 +387,7 @@ func (srv *Server) HandleConn(newConn net.Conn) {
 			continue
 		}
 		currentCount := atomic.LoadInt32(&count)
-		if srv.MaxSessions > 0 && currentCount > srv.MaxSessions {
+		if srv.MaxSessions > 0 && currentCount >= srv.MaxSessions {
 			ch.Reject(gossh.Prohibited, "too many sessions")
 			continue
 		}
