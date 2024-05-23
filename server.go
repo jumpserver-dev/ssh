@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gossh "golang.org/x/crypto/ssh"
@@ -64,6 +65,8 @@ type Server struct {
 	SessionRequestCallback        SessionRequestCallback        // callback for allowing or denying SSH sessions
 
 	ConnectionFailedCallback ConnectionFailedCallback // callback to report connection failures
+
+	MaxSessions int32 // maximum number of sessions to allow, unlimited if 0
 
 	IdleTimeout time.Duration // connection timeout when no activity, none if empty
 	MaxTimeout  time.Duration // absolute connection timeout, none if empty
@@ -373,6 +376,7 @@ func (srv *Server) HandleConn(newConn net.Conn) {
 	applyConnMetadata(ctx, sshConn)
 	//go gossh.DiscardRequests(reqs)
 	go srv.handleRequests(ctx, reqs)
+	var count int32
 	for ch := range chans {
 		handler := srv.ChannelHandlers[ch.ChannelType()]
 		if handler == nil {
@@ -382,7 +386,16 @@ func (srv *Server) HandleConn(newConn net.Conn) {
 			ch.Reject(gossh.UnknownChannelType, "unsupported channel type")
 			continue
 		}
-		go handler(srv, sshConn, ch, ctx)
+		currentCount := atomic.LoadInt32(&count)
+		if srv.MaxSessions > 0 && currentCount > srv.MaxSessions {
+			ch.Reject(gossh.Prohibited, "too many sessions")
+			continue
+		}
+		atomic.AddInt32(&count, 1)
+		go func() {
+			handler(srv, sshConn, ch, ctx)
+			atomic.AddInt32(&count, -1)
+		}()
 	}
 }
 
