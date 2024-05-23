@@ -392,8 +392,10 @@ func (srv *Server) HandleConn(newConn net.Conn) {
 			continue
 		}
 		atomic.AddInt32(&count, 1)
+		// 减少 loop 内 ch 变量名的影响
+		chReq := ch
 		go func() {
-			handler(srv, sshConn, ch, ctx)
+			handler(srv, sshConn, chReq, ctx)
 			atomic.AddInt32(&count, -1)
 		}()
 	}
