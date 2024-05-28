@@ -166,7 +166,7 @@ func (srv *Server) config(ctx Context) *gossh.ServerConfig {
 			if errors.As(authErr, &partialSuccess) {
 				return ctx.Permissions().Permissions, srv.createSSHPartialSuccessError(ctx, partialSuccess)
 			}
-			return ctx.Permissions().Permissions, nil
+			return ctx.Permissions().Permissions, authErr
 		}
 	}
 	if srv.PublicKeyHandler != nil {
@@ -178,7 +178,7 @@ func (srv *Server) config(ctx Context) *gossh.ServerConfig {
 				return ctx.Permissions().Permissions, srv.createSSHPartialSuccessError(ctx, partialSuccess)
 			}
 			ctx.SetValue(ContextKeyPublicKey, key)
-			return ctx.Permissions().Permissions, nil
+			return ctx.Permissions().Permissions, authErr
 		}
 	}
 	if srv.KeyboardInteractiveHandler != nil {
